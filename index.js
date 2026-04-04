@@ -1,6 +1,11 @@
 import 'dotenv/config'
 import { Telegraf } from 'telegraf'
 import { createServer } from 'http'
+import { createReadStream } from 'fs'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Health check server for Railway
 const PORT = process.env.PORT || 3000
@@ -19,9 +24,6 @@ const CHAT_ID = '-1003701840242'
 const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
 const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}`
 const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
-
-// Käytetään sinun animaatiota
-const DOGE_ANIMATION = './qdogesol.mov'
 
 // Asetukset
 const POLL_MS = 15000
@@ -100,9 +102,10 @@ function buildFlags({ priceChangePct, liquidityChangePct, volumeDelta, side }) {
 }
 
 async function sendQuantumDoge(caption) {
+  const animationPath = join(__dirname, 'qdogesol.mov')
   await bot.telegram.sendAnimation(
     CHAT_ID,
-    { source: DOGE_ANIMATION },
+    { source: createReadStream(animationPath) },
     {
       caption,
       parse_mode: 'HTML',
