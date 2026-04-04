@@ -16,9 +16,9 @@ const bot = new Telegraf(process.env.BOT_TOKEN)
 const CHAT_ID = '-1003701840242'
 
 // Seurattava pair
-const PAIR_ID = 'E2AQyiZKYftVRvR4g8VMMBpfD86PiGicWWARKuJdpump'
+const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
 const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}`
-const DEX_URL = `https://dexscreener.com/solana/${PAIR_ID}`
+const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
 
 // Käytetään sinun animaatiota
 const DOGE_ANIMATION = './qdogesol.mov'
