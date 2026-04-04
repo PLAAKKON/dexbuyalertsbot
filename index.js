@@ -1,5 +1,15 @@
 import 'dotenv/config'
 import { Telegraf } from 'telegraf'
+import { createServer } from 'http'
+
+// Health check server for Railway
+const PORT = process.env.PORT || 3000
+createServer((req, res) => {
+  res.writeHead(200)
+  res.end('Bot is running')
+}).listen(PORT, () => {
+  console.log(`Health check server running on port ${PORT}`)
+})
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
