@@ -11,7 +11,7 @@ const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}
 const DEX_URL = `https://dexscreener.com/solana/${PAIR_ID}`
 
 // Käytetään sinun animaatiota
-const DOGE_ANIMATION = '/mnt/data/qdogesol.mov'
+const DOGE_ANIMATION = './qdogesol.mov'
 
 // Asetukset
 const POLL_MS = 15000
