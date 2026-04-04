@@ -265,13 +265,9 @@ async function checkTrades() {
 }
 
 setInterval(checkTrades, POLL_MS)
+checkTrades() // Aja heti käynnistyksessä
 
-bot.start((ctx) => {
-  ctx.reply('Quantum Doge bot running ⚛️🐕')
-})
+console.log('Bot started - monitoring DexScreener')
 
-bot.launch()
-console.log('Bot started')
-
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
+process.once('SIGINT', () => process.exit())
+process.once('SIGTERM', () => process.exit())
