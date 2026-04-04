@@ -18,7 +18,26 @@ createServer((req, res) => {
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
-const CHAT_ID = '-1003841288653'
+// Kaikki ryhmät joihin lähetetään alertit
+const chatIds = new Set([
+  '-1003841288653',  // qdogesol
+])
+
+// /start-komento rekisteröi ryhmän
+bot.start((ctx) => {
+  const chatId = ctx.chat.id.toString()
+  if (ctx.chat.type === 'private') {
+    ctx.reply('⚛️🐕 Quantum Doge Bot\n\nLisää minut ryhmään ja lähetä /start siellä!')
+    return
+  }
+  chatIds.add(chatId)
+  console.log(`Registered chat: ${chatId} (${ctx.chat.title})`)
+  ctx.reply(`✅ Quantum Doge alerts aktivoitu tälle ryhmälle!\n\nChat ID: ${chatId}`)
+})
+
+// Käynnistä bot polling
+bot.launch()
+console.log('Bot polling started')
 
 // Seurattava pair
 const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
@@ -103,14 +122,27 @@ function buildFlags({ priceChangePct, liquidityChangePct, volumeDelta, side }) {
 
 async function sendQuantumDoge(caption) {
   const animationPath = join(__dirname, 'qdogesol.mov')
-  await bot.telegram.sendAnimation(
-    CHAT_ID,
-    { source: createReadStream(animationPath) },
-    {
-      caption,
-      parse_mode: 'HTML',
+  
+  for (const chatId of chatIds) {
+    try {
+      await bot.telegram.sendAnimation(
+        chatId,
+        { source: createReadStream(animationPath) },
+        {
+          caption,
+          parse_mode: 'HTML',
+        }
+      )
+      console.log(`Alert sent to ${chatId}`)
+    } catch (err) {
+      console.error(`Failed to send to ${chatId}:`, err.message)
+      // Poista ryhmä jos botti on poistettu sieltä
+      if (err.message.includes('chat not found') || err.message.includes('bot was kicked')) {
+        chatIds.delete(chatId)
+        console.log(`Removed invalid chat: ${chatId}`)
+      }
     }
-  )
+  }
 }
 
 async function maybeAutoBuy(snapshot) {
@@ -267,7 +299,7 @@ async function checkTrades() {
 setInterval(checkTrades, POLL_MS)
 checkTrades() // Aja heti käynnistyksessä
 
-console.log('Bot started - monitoring DexScreener')
+console.log('Bot started - monitoring DexScreener for all registered groups')
 
-process.once('SIGINT', () => process.exit())
-process.once('SIGTERM', () => process.exit())
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
