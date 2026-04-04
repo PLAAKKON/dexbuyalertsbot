@@ -18,7 +18,7 @@ createServer((req, res) => {
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
-const CHAT_ID = '-1003701840242'
+const CHAT_ID = '-1003841288653'
 
 // Seurattava pair
 const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
