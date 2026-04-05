@@ -64,7 +64,7 @@ const AUTO_BUY_MAX_PRICE_CHANGE_PCT = 2
 let state = {
   initialized: false,
   lastPrice: null,
-  lastLiquidity: null,
+  lastMarketCap: null,
   lastVolume24h: null,
   lastBuys24h: null,
   lastSells24h: null,
@@ -106,7 +106,7 @@ function quantumDogeMeter(usdSize, side = 'BUY') {
   return `${set[0]} SMALL`
 }
 
-function buildFlags({ priceChangePct, liquidityChangePct, volumeDelta, side }) {
+function buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side }) {
   const flags = []
 
   if (volumeDelta >= MEGA_WHALE_USD) flags.push('🐋 Mega whale')
@@ -114,8 +114,8 @@ function buildFlags({ priceChangePct, liquidityChangePct, volumeDelta, side }) {
 
   if (priceChangePct >= PUMP_THRESHOLD_PCT) flags.push('🚀 Pump')
   if (priceChangePct <= DUMP_THRESHOLD_PCT) flags.push('📉 Dump')
-  if (liquidityChangePct <= DRAIN_THRESHOLD_PCT) flags.push('🩸 Liquidity drain')
-  if (liquidityChangePct <= RUG_THRESHOLD_PCT) flags.push('🚨 Rug risk')
+  if (marketCapChangePct <= DRAIN_THRESHOLD_PCT) flags.push('🩸 Market cap drain')
+  if (marketCapChangePct <= RUG_THRESHOLD_PCT) flags.push('🚨 Rug risk')
 
   if (side === 'BUY') flags.push('🟢 Buy flow')
   if (side === 'SELL') flags.push('🔴 Sell flow')
@@ -152,11 +152,11 @@ async function sendQuantumDoge(caption) {
 async function maybeAutoBuy(snapshot) {
   if (!AUTO_BUY_ENABLED) return
 
-  const { side, liquidity, priceChangePct, volumeDelta } = snapshot
+  const { side, marketCap, priceChangePct, volumeDelta } = snapshot
 
   const looksOkay =
     side === 'BUY' &&
-    liquidity >= AUTO_BUY_MIN_LIQUIDITY &&
+    marketCap >= AUTO_BUY_MIN_LIQUIDITY &&
     priceChangePct <= AUTO_BUY_MAX_PRICE_CHANGE_PCT &&
     volumeDelta >= 50
 
@@ -187,14 +187,14 @@ async function checkTrades() {
     const baseToken = pair.baseToken?.symbol || 'LAIKA'
     const price = num(pair.priceUsd)
     const volume24h = num(pair.volume?.h24)
-    const liquidity = num(pair.liquidity?.usd) || num(pair.marketCap)  // Pumpfun käyttää marketCap
+    const marketCap = num(pair.marketCap)
     const buys24h = num(pair.txns?.h24?.buys)
     const sells24h = num(pair.txns?.h24?.sells)
 
     if (!state.initialized) {
       state.initialized = true
       state.lastPrice = price
-      state.lastLiquidity = liquidity
+      state.lastMarketCap = marketCap
       state.lastVolume24h = volume24h
       state.lastBuys24h = buys24h
       state.lastSells24h = sells24h
@@ -208,7 +208,7 @@ async function checkTrades() {
     const volumeDelta = Math.max(0, volume24h - state.lastVolume24h)
 
     const priceChangePct = pctChange(price, state.lastPrice)
-    const liquidityChangePct = pctChange(liquidity, state.lastLiquidity)
+    const marketCapChangePct = pctChange(marketCap, state.lastMarketCap)
 
     const hasSwapActivity = buyDelta > 0 || sellDelta > 0
 
@@ -220,7 +220,7 @@ async function checkTrades() {
 
     if (hasSwapActivity) {
       const meter = quantumDogeMeter(volumeDelta, side)
-      const flags = buildFlags({ priceChangePct, liquidityChangePct, volumeDelta, side })
+      const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side })
 
       const header =
         side === 'BUY'
@@ -239,7 +239,7 @@ async function checkTrades() {
         `⚛️ Quantum Field: ACTIVE`,
         '',
         `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
-        `Liquidity: <b>${money(liquidity)}</b> (${shortPct(liquidityChangePct)})`,
+        `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
         `Volume 24h: <b>${money(volume24h)}</b>`,
         `Buys 24h: <b>${buys24h}</b> | Sells 24h: <b>${sells24h}</b>`,
         `New: +${buyDelta} buys, +${sellDelta} sells`,
@@ -250,7 +250,7 @@ async function checkTrades() {
         .filter(Boolean)
         .join('\n')
 
-      const signature = `${side}|${buyDelta}|${sellDelta}|${volumeDelta.toFixed(2)}|${price.toFixed(12)}|${liquidity.toFixed(2)}`
+      const signature = `${side}|${buyDelta}|${sellDelta}|${volumeDelta.toFixed(2)}|${price.toFixed(12)}|${marketCap.toFixed(2)}`
 
       if (signature !== state.lastAlertSignature) {
         await sendQuantumDoge(caption)
@@ -260,14 +260,14 @@ async function checkTrades() {
 
       await maybeAutoBuy({
         side,
-        liquidity,
+        marketCap,
         price,
         priceChangePct,
         volumeDelta,
         baseToken,
       })
     } else if (Date.now() - state.lastIdleReportAt >= IDLE_REPORT_MS) {
-      const flags = buildFlags({ priceChangePct, liquidityChangePct, volumeDelta: 0, side: 'MIXED' })
+      const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta: 0, side: 'MIXED' })
 
       const caption = [
         '⏸️ NO NEW SWAPS',
@@ -277,7 +277,7 @@ async function checkTrades() {
         `📡 Chain: Solana`,
         '',
         `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
-        `Liquidity: <b>${money(liquidity)}</b> (${shortPct(liquidityChangePct)})`,
+        `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
         `Volume 24h: <b>${money(volume24h)}</b>`,
         `Buys 24h: <b>${buys24h}</b> | Sells 24h: <b>${sells24h}</b>`,
         flags.length ? `Flags: ${flags.join(' • ')}` : '',
@@ -292,7 +292,7 @@ async function checkTrades() {
     }
 
     state.lastPrice = price
-    state.lastLiquidity = liquidity
+    state.lastMarketCap = marketCap
     state.lastVolume24h = volume24h
     state.lastBuys24h = buys24h
     state.lastSells24h = sells24h
