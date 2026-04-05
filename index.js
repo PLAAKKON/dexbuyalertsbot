@@ -45,7 +45,7 @@ const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}
 const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
 
 // Asetukset
-const POLL_MS = 30000  // 30 sekuntia rate limitin välttämiseksi
+const POLL_MS = 60000  // 60 sekuntia rate limitin välttämiseksi
 const IDLE_REPORT_MS = 10 * 60 * 1000
 
 // Heuristiikat
@@ -168,9 +168,23 @@ async function maybeAutoBuy(snapshot) {
   // Nyt tämä EI osta mitään, vaan toimii turvallisesti vain stubina.
 }
 
+let rateLimitBackoff = 0  // Lisäviive rate limitin jälkeen
+
 async function checkTrades() {
   try {
+    // Jos ollaan rate limitattu, odota extra
+    if (rateLimitBackoff > 0) {
+      console.log(`Rate limit backoff: waiting ${rateLimitBackoff}ms extra`)
+      rateLimitBackoff = Math.max(0, rateLimitBackoff - POLL_MS)
+      return
+    }
+
     const res = await fetch(PAIR_URL)
+    if (res.status === 429) {
+      console.error('DexScreener rate limited - backing off 2 minutes')
+      rateLimitBackoff = 120000  // 2 minuuttia
+      return
+    }
     if (!res.ok) {
       console.error('DexScreener fetch failed:', res.status, res.statusText)
       return
