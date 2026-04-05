@@ -83,7 +83,11 @@ function pctChange(current, previous) {
 }
 
 function money(v) {
-  return `$${num(v).toFixed(2)}`
+  const n = num(v)
+  if (n === 0) return '$0.00'
+  if (n < 0.0001) return `$${n.toExponential(2)}`  // Erittäin pienet: $8.17e-7
+  if (n < 0.01) return `$${n.toFixed(6)}`          // Pienet: $0.000817
+  return `$${n.toFixed(2)}`                        // Normaalit: $123.45
 }
 
 function shortPct(v) {
@@ -183,7 +187,7 @@ async function checkTrades() {
     const baseToken = pair.baseToken?.symbol || 'LAIKA'
     const price = num(pair.priceUsd)
     const volume24h = num(pair.volume?.h24)
-    const liquidity = num(pair.liquidity?.usd)
+    const liquidity = num(pair.liquidity?.usd) || num(pair.marketCap)  // Pumpfun käyttää marketCap
     const buys24h = num(pair.txns?.h24?.buys)
     const sells24h = num(pair.txns?.h24?.sells)
 
