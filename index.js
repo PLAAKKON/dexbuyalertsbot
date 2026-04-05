@@ -72,6 +72,38 @@ let state = {
   lastAlertSignature: null,
 }
 
+// Tallenna lähetetyt viestit poistoa varten: { chatId -> [{ messageId, sentAt }] }
+const sentMessages = new Map()
+
+// Poista yli 10 minuuttia vanhat botin viestit
+async function cleanupOldMessages() {
+  const maxAge = 10 * 60 * 1000  // 10 minuuttia
+  const now = Date.now()
+
+  for (const [chatId, messages] of sentMessages.entries()) {
+    const toDelete = messages.filter(m => now - m.sentAt >= maxAge)
+    const toKeep = messages.filter(m => now - m.sentAt < maxAge)
+
+    for (const msg of toDelete) {
+      try {
+        await bot.telegram.deleteMessage(chatId, msg.messageId)
+        console.log(`Deleted old message ${msg.messageId} from ${chatId}`)
+      } catch (err) {
+        // Viesti on jo poistettu tai ei oikeuksia
+        if (!err.message.includes('message to delete not found')) {
+          console.error(`Failed to delete message ${msg.messageId}:`, err.message)
+        }
+      }
+    }
+
+    if (toKeep.length > 0) {
+      sentMessages.set(chatId, toKeep)
+    } else {
+      sentMessages.delete(chatId)
+    }
+  }
+}
+
 function num(v, fallback = 0) {
   const n = Number(v)
   return Number.isFinite(n) ? n : fallback
@@ -127,9 +159,12 @@ function buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side }) {
 async function sendQuantumDoge(caption) {
   const animationPath = join(__dirname, 'qdogesol.mov')
   
+  // Siivoa vanhat viestit ennen uuden lähettämistä
+  await cleanupOldMessages()
+  
   for (const chatId of chatIds) {
     try {
-      await bot.telegram.sendAnimation(
+      const sentMsg = await bot.telegram.sendAnimation(
         chatId,
         { source: createReadStream(animationPath) },
         {
@@ -137,12 +172,23 @@ async function sendQuantumDoge(caption) {
           parse_mode: 'HTML',
         }
       )
-      console.log(`Alert sent to ${chatId}`)
+      
+      // Tallenna viesti-ID poistoa varten
+      if (!sentMessages.has(chatId)) {
+        sentMessages.set(chatId, [])
+      }
+      sentMessages.get(chatId).push({
+        messageId: sentMsg.message_id,
+        sentAt: Date.now()
+      })
+      
+      console.log(`Alert sent to ${chatId} (msg ${sentMsg.message_id})`)
     } catch (err) {
       console.error(`Failed to send to ${chatId}:`, err.message)
       // Poista ryhmä jos botti on poistettu sieltä
       if (err.message.includes('chat not found') || err.message.includes('bot was kicked')) {
         chatIds.delete(chatId)
+        sentMessages.delete(chatId)
         console.log(`Removed invalid chat: ${chatId}`)
       }
     }
