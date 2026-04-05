@@ -45,7 +45,7 @@ const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}
 const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
 
 // Asetukset
-const POLL_MS = 15000
+const POLL_MS = 30000  // 30 sekuntia rate limitin välttämiseksi
 const IDLE_REPORT_MS = 10 * 60 * 1000
 
 // Heuristiikat
