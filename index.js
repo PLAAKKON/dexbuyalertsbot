@@ -195,6 +195,44 @@ async function sendQuantumDoge(caption) {
   }
 }
 
+async function sendIdlePhoto(caption) {
+  const photoPath = join(__dirname, 'qdogesol2.png')
+  
+  // Siivoa vanhat viestit ennen uuden lähettämistä
+  await cleanupOldMessages()
+  
+  for (const chatId of chatIds) {
+    try {
+      const sentMsg = await bot.telegram.sendPhoto(
+        chatId,
+        { source: createReadStream(photoPath) },
+        {
+          caption,
+          parse_mode: 'HTML',
+        }
+      )
+      
+      // Tallenna viesti-ID poistoa varten
+      if (!sentMessages.has(chatId)) {
+        sentMessages.set(chatId, [])
+      }
+      sentMessages.get(chatId).push({
+        messageId: sentMsg.message_id,
+        sentAt: Date.now()
+      })
+      
+      console.log(`Idle photo sent to ${chatId} (msg ${sentMsg.message_id})`)
+    } catch (err) {
+      console.error(`Failed to send idle photo to ${chatId}:`, err.message)
+      if (err.message.includes('chat not found') || err.message.includes('bot was kicked')) {
+        chatIds.delete(chatId)
+        sentMessages.delete(chatId)
+        console.log(`Removed invalid chat: ${chatId}`)
+      }
+    }
+  }
+}
+
 async function maybeAutoBuy(snapshot) {
   if (!AUTO_BUY_ENABLED) return
 
@@ -331,6 +369,7 @@ async function checkTrades() {
 
       const caption = [
         '⏸️ NO NEW SWAPS',
+        '😎 HOLDERS CHILLING 😎',
         '',
         `Token: <b>${baseToken}</b>`,
         `Quantum Doge: 😴🐕 Idle`,
@@ -347,7 +386,7 @@ async function checkTrades() {
         .filter(Boolean)
         .join('\n')
 
-      await sendQuantumDoge(caption)
+      await sendIdlePhoto(caption)
       state.lastIdleReportAt = Date.now()
     }
 
