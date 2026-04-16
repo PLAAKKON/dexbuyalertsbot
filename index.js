@@ -391,7 +391,7 @@ async function checkTrades() {
     const bondingCurveText = bondingCurve
       ? bondingCurve.graduated
         ? '🎓 <b>GRADUATED TO RAYDIUM!</b>'
-        : `📈 Bonding Curve: ${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
+        : `📈 Bonding Curve:\n${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
       : ''
 
     if (hasSwapActivity) {
