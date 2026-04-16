@@ -46,8 +46,8 @@ const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigic
 
 // Pump.fun bonding curve settings
 const TOKEN_MINT = 'E2AQyiZKYftVRvR4g8VMMBpfD86PiGicWWARKuJdpump'
-const PUMP_FUN_API_URL = `https://frontend-api.pump.fun/coins/${TOKEN_MINT}`
-const BONDING_CURVE_TARGET_SOL = 85  // ~85 SOL needed to graduate
+const PUMP_FUN_API_URL = `https://frontend-api-v3.pump.fun/coins/${TOKEN_MINT}`
+const BONDING_CURVE_GRADUATION_SOL = 85  // ~85 SOL to graduate to Raydium
 
 // Asetukset
 const POLL_MS = 60000  // 60 sekuntia rate limitin välttämiseksi
@@ -136,8 +136,10 @@ function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
   const filled = Math.round(pct / 10)
   const empty = 10 - filled
-  const bar = '█'.repeat(filled) + '░'.repeat(empty)
-  return `[${bar}] ${pct.toFixed(1)}%`
+  // Use colored balls for animated effect
+  const filledBalls = '🟢'.repeat(filled)
+  const emptyBalls = '⚫'.repeat(empty)
+  return `${filledBalls}${emptyBalls} ${pct.toFixed(1)}%`
 }
 
 // Fetch bonding curve data from pump.fun
@@ -146,7 +148,7 @@ async function getBondingCurveProgress() {
     const res = await fetch(PUMP_FUN_API_URL, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     })
     
@@ -157,25 +159,27 @@ async function getBondingCurveProgress() {
     
     const data = await res.json()
     
-    // pump.fun returns virtual_sol_reserves and other bonding curve data
-    // The progress is based on how much SOL is in the bonding curve
-    if (data.virtual_sol_reserves !== undefined) {
-      const solInCurve = data.virtual_sol_reserves / 1e9  // Convert lamports to SOL
-      const progress = (solInCurve / BONDING_CURVE_TARGET_SOL) * 100
+    // Check if already graduated
+    if (data.complete === true) {
       return {
-        progress: Math.min(100, progress),
-        solInCurve: solInCurve,
-        graduated: data.complete || data.raydium_pool !== null,
-        kingOfTheHill: data.king_of_the_hill_timestamp !== null
+        progress: 100,
+        solInCurve: BONDING_CURVE_GRADUATION_SOL,
+        graduated: true,
+        kingOfTheHill: false
       }
     }
     
-    // Alternative: some pump.fun APIs return bonding_curve_progress directly
-    if (data.bonding_curve_progress !== undefined) {
+    // Calculate progress from real_sol_reserves (actual SOL deposited)
+    if (data.real_sol_reserves !== undefined) {
+      const realSol = data.real_sol_reserves / 1e9  // Convert lamports to SOL
+      const progress = (realSol / BONDING_CURVE_GRADUATION_SOL) * 100
+      
+      console.log(`Bonding curve: ${realSol.toFixed(2)} SOL / ${BONDING_CURVE_GRADUATION_SOL} SOL = ${progress.toFixed(1)}%`)
+      
       return {
-        progress: data.bonding_curve_progress * 100,
-        solInCurve: data.bonding_curve_progress * BONDING_CURVE_TARGET_SOL,
-        graduated: data.complete || false,
+        progress: Math.min(100, Math.max(0, progress)),
+        solInCurve: realSol,
+        graduated: false,
         kingOfTheHill: data.king_of_the_hill_timestamp !== null
       }
     }
@@ -201,18 +205,22 @@ function quantumDogeMeter(usdSize, side = 'BUY') {
 
 function buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side }) {
   const flags = []
+  
+  // Animated ball patterns for visual effect
+  const ballPatterns = ['⚪🔵🟢', '🔵🟢⚪', '🟢⚪🔵']
+  const animBalls = ballPatterns[Math.floor(Date.now() / 1000) % 3]
 
-  if (volumeDelta >= MEGA_WHALE_USD) flags.push('🐋 Mega whale')
-  else if (volumeDelta >= WHALE_USD) flags.push('🐳 Whale')
+  if (volumeDelta >= MEGA_WHALE_USD) flags.push(`🐋 Mega whale ${animBalls}`)
+  else if (volumeDelta >= WHALE_USD) flags.push(`🐳 Whale ${animBalls}`)
 
-  if (priceChangePct >= PUMP_THRESHOLD_PCT) flags.push('🚀 Pump')
-  if (priceChangePct <= DUMP_THRESHOLD_PCT) flags.push('📉 Dump')
-  if (marketCapChangePct <= DRAIN_THRESHOLD_PCT) flags.push('🩸 Market cap drain')
-  if (marketCapChangePct <= RUG_THRESHOLD_PCT) flags.push('🚨 Rug risk')
+  if (priceChangePct >= PUMP_THRESHOLD_PCT) flags.push(`🚀 Pump ${animBalls}`)
+  if (priceChangePct <= DUMP_THRESHOLD_PCT) flags.push('📉 Dump 🔴🔴🔴')
+  if (marketCapChangePct <= DRAIN_THRESHOLD_PCT) flags.push('🩸 MC drain 🔴🟠🔴')
+  if (marketCapChangePct <= RUG_THRESHOLD_PCT) flags.push('🚨 Rug risk ⚠️⚠️⚠️')
 
-  if (side === 'BUY') flags.push('🟢 Buy flow')
-  if (side === 'SELL') flags.push('🔴 Sell flow')
-  if (side === 'MIXED') flags.push('🟠 Mixed flow')
+  if (side === 'BUY') flags.push(`🟢 Buy flow ${animBalls}`)
+  if (side === 'SELL') flags.push('🔴 Sell flow 🔴🟠🔴')
+  if (side === 'MIXED') flags.push('🟠 Mixed flow 🟠⚪🟠')
 
   return flags
 }
