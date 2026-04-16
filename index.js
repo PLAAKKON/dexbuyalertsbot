@@ -47,7 +47,7 @@ const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigic
 // Pump.fun bonding curve settings
 const TOKEN_MINT = 'E2AQyiZKYftVRvR4g8VMMBpfD86PiGicWWARKuJdpump'
 const PUMP_FUN_API_URL = `https://frontend-api-v3.pump.fun/coins/${TOKEN_MINT}`
-const BONDING_CURVE_GRADUATION_SOL = 85  // ~85 SOL to graduate to Raydium
+const INITIAL_REAL_TOKEN_RESERVES = 793100000000000  // Initial tokens in bonding curve (793.1M with 6 decimals)
 
 // Asetukset
 const POLL_MS = 60000  // 60 sekuntia rate limitin välttämiseksi
@@ -163,18 +163,19 @@ async function getBondingCurveProgress() {
     if (data.complete === true) {
       return {
         progress: 100,
-        solInCurve: BONDING_CURVE_GRADUATION_SOL,
+        solInCurve: data.real_sol_reserves ? data.real_sol_reserves / 1e9 : 0,
         graduated: true,
         kingOfTheHill: false
       }
     }
     
-    // Calculate progress from real_sol_reserves (actual SOL deposited)
-    if (data.real_sol_reserves !== undefined) {
-      const realSol = data.real_sol_reserves / 1e9  // Convert lamports to SOL
-      const progress = (realSol / BONDING_CURVE_GRADUATION_SOL) * 100
+    // Calculate progress based on tokens sold from bonding curve
+    // Progress = 1 - (current_tokens / initial_tokens)
+    if (data.real_token_reserves !== undefined) {
+      const realSol = data.real_sol_reserves ? data.real_sol_reserves / 1e9 : 0
+      const progress = (1 - (data.real_token_reserves / INITIAL_REAL_TOKEN_RESERVES)) * 100
       
-      console.log(`Bonding curve: ${realSol.toFixed(2)} SOL / ${BONDING_CURVE_GRADUATION_SOL} SOL = ${progress.toFixed(1)}%`)
+      console.log(`Bonding curve: ${realSol.toFixed(2)} SOL, ${progress.toFixed(1)}% tokens sold`)
       
       return {
         progress: Math.min(100, Math.max(0, progress)),
