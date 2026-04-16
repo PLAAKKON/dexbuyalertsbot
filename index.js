@@ -44,6 +44,11 @@ const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
 const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}`
 const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
 
+// Pump.fun bonding curve settings
+const TOKEN_MINT = 'E2AQyiZKYftVRvR4g8VMMBpfD86PiGicWWARKuJdpump'
+const PUMP_FUN_API_URL = `https://frontend-api.pump.fun/coins/${TOKEN_MINT}`
+const BONDING_CURVE_TARGET_SOL = 85  // ~85 SOL needed to graduate
+
 // Asetukset
 const POLL_MS = 60000  // 60 sekuntia rate limitin välttämiseksi
 const IDLE_REPORT_MS = 10 * 60 * 1000
@@ -124,6 +129,62 @@ function money(v) {
 
 function shortPct(v) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+}
+
+// Bonding curve progress bar generator
+function bondingCurveBar(percentage) {
+  const pct = Math.min(100, Math.max(0, percentage))
+  const filled = Math.round(pct / 10)
+  const empty = 10 - filled
+  const bar = '█'.repeat(filled) + '░'.repeat(empty)
+  return `[${bar}] ${pct.toFixed(1)}%`
+}
+
+// Fetch bonding curve data from pump.fun
+async function getBondingCurveProgress() {
+  try {
+    const res = await fetch(PUMP_FUN_API_URL, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
+      }
+    })
+    
+    if (!res.ok) {
+      console.error('Pump.fun API failed:', res.status)
+      return null
+    }
+    
+    const data = await res.json()
+    
+    // pump.fun returns virtual_sol_reserves and other bonding curve data
+    // The progress is based on how much SOL is in the bonding curve
+    if (data.virtual_sol_reserves !== undefined) {
+      const solInCurve = data.virtual_sol_reserves / 1e9  // Convert lamports to SOL
+      const progress = (solInCurve / BONDING_CURVE_TARGET_SOL) * 100
+      return {
+        progress: Math.min(100, progress),
+        solInCurve: solInCurve,
+        graduated: data.complete || data.raydium_pool !== null,
+        kingOfTheHill: data.king_of_the_hill_timestamp !== null
+      }
+    }
+    
+    // Alternative: some pump.fun APIs return bonding_curve_progress directly
+    if (data.bonding_curve_progress !== undefined) {
+      return {
+        progress: data.bonding_curve_progress * 100,
+        solInCurve: data.bonding_curve_progress * BONDING_CURVE_TARGET_SOL,
+        graduated: data.complete || false,
+        kingOfTheHill: data.king_of_the_hill_timestamp !== null
+      }
+    }
+    
+    return null
+  } catch (err) {
+    console.error('getBondingCurveProgress error:', err.message)
+    return null
+  }
 }
 
 function quantumDogeMeter(usdSize, side = 'BUY') {
@@ -316,6 +377,14 @@ async function checkTrades() {
     else if (buyDelta > sellDelta) side = 'BUY'
     else if (sellDelta > buyDelta) side = 'SELL'
 
+    // Fetch bonding curve progress
+    const bondingCurve = await getBondingCurveProgress()
+    const bondingCurveText = bondingCurve
+      ? bondingCurve.graduated
+        ? '🎓 <b>GRADUATED TO RAYDIUM!</b>'
+        : `📈 Bonding Curve: ${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
+      : ''
+
     if (hasSwapActivity) {
       const meter = quantumDogeMeter(volumeDelta, side)
       const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side })
@@ -335,6 +404,8 @@ async function checkTrades() {
         `Estimated swap size: <b>${money(volumeDelta)}</b>`,
         `📡 Chain: Solana`,
         `⚛️ Quantum Field: ACTIVE`,
+        '',
+        bondingCurveText,
         '',
         `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
@@ -374,6 +445,8 @@ async function checkTrades() {
         `Token: <b>${baseToken}</b>`,
         `Quantum Doge: 😴🐕 Idle`,
         `📡 Chain: Solana`,
+        '',
+        bondingCurveText,
         '',
         `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
