@@ -27,12 +27,23 @@ const chatIds = new Set([
 bot.start((ctx) => {
   const chatId = ctx.chat.id.toString()
   if (ctx.chat.type === 'private') {
-    ctx.reply('⚛️🐕 Quantum Doge Bot\n\nLisää minut ryhmään ja lähetä /start siellä!')
+    const privateMessages = [
+      '⚛️🐕 Quantum Doge Bot\n\n🔮 Add me to a group and send /start there to activate alerts!',
+      '🐕⚛️ QDOGE Alert System\n\n🚀 Want real-time alerts? Add me to your group and /start!',
+      '⚡ Quantum Doge Bot Online\n\n👉 Add me to a group to enable market monitoring!',
+    ]
+    ctx.reply(privateMessages[Math.floor(Math.random() * privateMessages.length)])
     return
   }
   chatIds.add(chatId)
   console.log(`Registered chat: ${chatId} (${ctx.chat.title})`)
-  ctx.reply(`✅ Quantum Doge alerts aktivoitu tälle ryhmälle!\n\nChat ID: ${chatId}`)
+  
+  const activationMessages = [
+    `✅ Quantum Doge alerts ACTIVATED! 🚀\n\n⚛️ Monitoring started for this group\n📊 Chat ID: <code>${chatId}</code>\n\n💎 You'll receive real-time swap alerts!`,
+    `🔥 QDOGE Bot is now LIVE! ⚡\n\n🐕 This group is registered for alerts\n🔗 ID: <code>${chatId}</code>\n\n🚀 Let the gains begin!`,
+    `⚛️ Quantum Field: CONNECTED ✅\n\n🎯 Alerts activated for this group\n📡 Tracking ID: <code>${chatId}</code>\n\n💰 Stay tuned for market action!`,
+  ]
+  ctx.reply(activationMessages[Math.floor(Math.random() * activationMessages.length)], { parse_mode: 'HTML' })
 })
 
 // Käynnistä bot polling
@@ -131,6 +142,116 @@ function shortPct(v) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
 }
 
+// Dynamic randomizers
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function volumeBar(value, max, length = 8) {
+  const filled = Math.min(length, Math.round((value / max) * length))
+  const empty = length - filled
+  return '█'.repeat(filled) + '░'.repeat(empty)
+}
+
+function timeAgo() {
+  return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+// Dynamic headers
+const buyHeaders = [
+  '🔥 BUY ALERT DETECTED',
+  '💚 BUYERS INCOMING',
+  '🚀 BULLISH ACTIVITY',
+  '⚡ BUY SIGNAL TRIGGERED',
+  '💎 DIAMOND HANDS BUYING',
+  '🟢 GREEN CANDLE FORMING',
+  '📈 UPWARD MOMENTUM',
+  '🔫 SHOTS FIRED - BUYING',
+]
+
+const sellHeaders = [
+  '🔻 SELL PRESSURE DETECTED',
+  '🔴 SELLERS ACTIVE',
+  '📉 BEARISH ACTIVITY',
+  '⚠️ SELL SIGNAL',
+  '🌀 PAPER HANDS SELLING',
+  '🩸 BLOOD IN THE WATER',
+  '❄️ COOLER ACTIVITY',
+  '💨 PROFIT TAKING',
+]
+
+const mixedHeaders = [
+  '🔄 MARKET ACTION',
+  '⚡ VOLATILE SWAPS',
+  '🎭 MIXED SIGNALS',
+  '🌊 WAVE ACTIVITY',
+  '⚖️ BATTLE IN PROGRESS',
+  '🎲 UNPREDICTABLE MOVES',
+]
+
+const idleHeaders = [
+  '⏸️ QUANTUM FIELD STABLE',
+  '😴 MARKET TAKING A NAP',
+  '🧘 ZEN MODE ACTIVE',
+  '☕ COFFEE BREAK',
+  '🌙 QUIET HOURS',
+  '🐕💤 DOGE IS SLEEPING',
+  '⏳ WAITING FOR ACTION',
+  '🔮 CALM BEFORE THE STORM',
+]
+
+const idleSubtitles = [
+  '😎 HOLDERS CHILLING 😎',
+  '💎 DIAMOND HANDS HODLING 💎',
+  '🧊 ICE COLD PATIENCE 🧊',
+  '🦍 APES TOGETHER STRONG 🦍',
+  '🌈 VIBING ONLY 🌈',
+  '🎵 ELEVATOR MUSIC PLAYING 🎵',
+  '🛋️ COUCH MODE ACTIVATED 🛋️',
+]
+
+const quantumPhrases = [
+  '⚛️ Quantum Field: RESONATING',
+  '⚛️ Quantum State: SUPERPOSITION',
+  '⚛️ Entanglement: STRONG',
+  '⚛️ Wavefunction: COLLAPSING',
+  '⚛️ Quantum Flux: ELEVATED',
+  '⚛️ Quantum Tunneling: ACTIVE',
+  '⚛️ Spin State: ALIGNED',
+]
+
+const momentumPhrases = {
+  bullish: ['🐂 Bulls in control', '🚀 Moon trajectory', '💪 Strong momentum', '📊 Trend is UP'],
+  bearish: ['🐻 Bears awakening', '🪂 Parachute mode', '⬇️ Descending', '📊 Trend is DOWN'],
+  neutral: ['⚖️ Market deciding', '🤔 Uncertain territory', '➡️ Sideways action', '🎯 Consolidating'],
+}
+
+const closingPhrases = [
+  '🔗 DYOR - NFA',
+  '⚠️ Trade responsibly',
+  '👀 Stay vigilant',
+  '🎯 Eyes on the chart',
+  '💡 Knowledge is power',
+  '🔍 Research always',
+]
+
+function getExcitementLevel(volumeDelta, priceChangePct) {
+  const volScore = volumeDelta >= MEGA_WHALE_USD ? 3 : volumeDelta >= WHALE_USD ? 2 : volumeDelta >= 100 ? 1 : 0
+  const priceScore = Math.abs(priceChangePct) >= 10 ? 3 : Math.abs(priceChangePct) >= 5 ? 2 : Math.abs(priceChangePct) >= 2 ? 1 : 0
+  const total = volScore + priceScore
+  
+  if (total >= 5) return { emoji: '🔥🔥🔥', text: 'EXTREME', border: '═══════════════════' }
+  if (total >= 4) return { emoji: '🔥🔥', text: 'HIGH', border: '════════════════' }
+  if (total >= 2) return { emoji: '🔥', text: 'MODERATE', border: '═══════════════' }
+  return { emoji: '📊', text: 'NORMAL', border: '──────────────' }
+}
+
+function getMomentum(priceChangePct) {
+  if (priceChangePct >= 2) return pick(momentumPhrases.bullish)
+  if (priceChangePct <= -2) return pick(momentumPhrases.bearish)
+  return pick(momentumPhrases.neutral)
+}
+
 // Bonding curve progress bar generator
 function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
@@ -193,35 +314,51 @@ async function getBondingCurveProgress() {
 }
 
 function quantumDogeMeter(usdSize, side = 'BUY') {
-  const buy = ['⚛️🐕', '⚛️⚛️🐕', '⚛️⚛️⚛️🐕', '⚛️⚛️⚛️⚛️🐕', '⚛️⚛️⚛️⚛️⚛️🐕']
-  const sell = ['🌀🐕', '🌀🌀🐕', '🌀🌀🌀🐕', '🌀🌀🌀🌀🐕', '🌀🌀🌀🌀🌀🐕']
-  const set = side === 'SELL' ? sell : buy
+  const buyEmojis = ['⚛️', '💚', '🟢', '✅', '💎']
+  const sellEmojis = ['🌀', '🔴', '❌', '📉', '💨']
+  
+  const emojis = side === 'SELL' ? sellEmojis : buyEmojis
+  const e1 = pick(emojis)
+  const e2 = pick(emojis)
+  
+  const sizeLabels = {
+    mega: ['MEGA WHALE 🐋', 'GIGANTIC 🏔️', 'MASSIVE 💥', 'LEGENDARY 👑', 'NUCLEAR ☢️'],
+    whale: ['WHALE 🐳', 'HUGE 🦣', 'MAJOR 🎯', 'SIGNIFICANT 📊', 'POWERFUL 💪'],
+    strong: ['STRONG 💪', 'SOLID 🪨', 'NOTABLE 📌', 'HEALTHY 💚', 'RESPECTABLE 👍'],
+    medium: ['MEDIUM 📊', 'MODERATE 📈', 'DECENT 👌', 'STANDARD 📋', 'NORMAL 🔄'],
+    small: ['SMALL 🐜', 'MINI 🔹', 'TINY 🌱', 'MICRO 🔬', 'HUMBLE 🙏'],
+  }
 
-  if (usdSize >= MEGA_WHALE_USD) return `${set[4]} MEGA WHALE`
-  if (usdSize >= WHALE_USD) return `${set[3]} WHALE`
-  if (usdSize >= 250) return `${set[2]} STRONG`
-  if (usdSize >= 50) return `${set[1]} MEDIUM`
-  return `${set[0]} SMALL`
+  if (usdSize >= MEGA_WHALE_USD) return `${e1}${e2}${e1}${e2}${e1}🐕 ${pick(sizeLabels.mega)}`
+  if (usdSize >= WHALE_USD) return `${e1}${e2}${e1}${e2}🐕 ${pick(sizeLabels.whale)}`
+  if (usdSize >= 250) return `${e1}${e2}${e1}🐕 ${pick(sizeLabels.strong)}`
+  if (usdSize >= 50) return `${e1}${e2}🐕 ${pick(sizeLabels.medium)}`
+  return `${e1}🐕 ${pick(sizeLabels.small)}`
 }
 
 function buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side }) {
   const flags = []
+
+  // Volume-based flags with variety
+  const whaleEmojis = ['🐋', '🦣', '🏔️', '👑']
+  const smallWhaleEmojis = ['🐳', '🐬', '🦈', '💦']
   
-  // Animated ball patterns for visual effect
-  const ballPatterns = ['⚪🔵🟢', '🔵🟢⚪', '🟢⚪🔵']
-  const animBalls = ballPatterns[Math.floor(Date.now() / 1000) % 3]
+  if (volumeDelta >= MEGA_WHALE_USD) flags.push(`${pick(whaleEmojis)} ${pick(['Mega whale', 'HUGE move', 'Gigantic', 'Monster trade'])}`)
+  else if (volumeDelta >= WHALE_USD) flags.push(`${pick(smallWhaleEmojis)} ${pick(['Whale', 'Big fish', 'Major player', 'Significant'])}`)
 
-  if (volumeDelta >= MEGA_WHALE_USD) flags.push(`🐋 Mega whale ${animBalls}`)
-  else if (volumeDelta >= WHALE_USD) flags.push(`🐳 Whale ${animBalls}`)
+  // Price movement flags
+  const pumpEmojis = ['🚀', '📈', '🔥', '⚡', '💥']
+  const dumpEmojis = ['📉', '⬇️', '🔻', '💀', '🪂']
+  
+  if (priceChangePct >= PUMP_THRESHOLD_PCT) flags.push(`${pick(pumpEmojis)} ${pick(['PUMPING', 'Mooning', 'Blasting off', 'Ripping'])}`)
+  if (priceChangePct <= DUMP_THRESHOLD_PCT) flags.push(`${pick(dumpEmojis)} ${pick(['DUMPING', 'Dropping', 'Falling', 'Bleeding'])}`)
+  if (marketCapChangePct <= DRAIN_THRESHOLD_PCT) flags.push(`🩸 ${pick(['MC Drain', 'Cap bleeding', 'Liquidity exit', 'Value drop'])}`)
+  if (marketCapChangePct <= RUG_THRESHOLD_PCT) flags.push(`🚨 ${pick(['RUG ALERT', 'DANGER', 'EXTREME DROP', 'WARNING'])}`)
 
-  if (priceChangePct >= PUMP_THRESHOLD_PCT) flags.push(`🚀 Pump ${animBalls}`)
-  if (priceChangePct <= DUMP_THRESHOLD_PCT) flags.push('📉 Dump 🔴🔴🔴')
-  if (marketCapChangePct <= DRAIN_THRESHOLD_PCT) flags.push('🩸 MC drain 🔴🟠🔴')
-  if (marketCapChangePct <= RUG_THRESHOLD_PCT) flags.push('🚨 Rug risk ⚠️⚠️⚠️')
-
-  if (side === 'BUY') flags.push(`🟢 Buy flow ${animBalls}`)
-  if (side === 'SELL') flags.push('🔴 Sell flow 🔴🟠🔴')
-  if (side === 'MIXED') flags.push('🟠 Mixed flow 🟠⚪🟠')
+  // Flow indicators with variety
+  if (side === 'BUY') flags.push(pick(['🟢 Buy flow', '💚 Buying', '📗 Green zone', '✅ Inflow']))
+  if (side === 'SELL') flags.push(pick(['🔴 Sell flow', '❤️‍🔥 Selling', '📕 Red zone', '❌ Outflow']))
+  if (side === 'MIXED') flags.push(pick(['🟠 Mixed flow', '🎭 Both sides', '⚔️ Battle', '🔀 Chaotic']))
 
   return flags
 }
@@ -397,33 +534,46 @@ async function checkTrades() {
     if (hasSwapActivity) {
       const meter = quantumDogeMeter(volumeDelta, side)
       const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side })
+      const excitement = getExcitementLevel(volumeDelta, priceChangePct)
+      const momentum = getMomentum(priceChangePct)
 
-      const header =
-        side === 'BUY'
-          ? '🔥 BUY ACTIVITY'
-          : side === 'SELL'
-            ? '🔻 SELL ACTIVITY'
-            : '🔄 SWAP ACTIVITY'
+      const header = side === 'BUY' 
+        ? pick(buyHeaders)
+        : side === 'SELL' 
+          ? pick(sellHeaders)
+          : pick(mixedHeaders)
 
+      const priceDirection = priceChangePct >= 0 ? '↗️' : '↘️'
+      const mcapDirection = marketCapChangePct >= 0 ? '📈' : '📉'
+      const volBar = volumeBar(volumeDelta, MEGA_WHALE_USD, 8)
+      
       const caption = [
-        header,
+        `${excitement.border}`,
+        `${header} ${excitement.emoji}`,
+        `${excitement.border}`,
         '',
-        `Token: <b>${baseToken}</b>`,
-        `Quantum Doge: ${meter}`,
-        `Estimated swap size: <b>${money(volumeDelta)}</b>`,
-        `📡 Chain: Solana`,
-        `⚛️ Quantum Field: ACTIVE`,
+        `🪙 Token: <b>${baseToken}</b>`,
+        `⏰ Time: <code>${timeAgo()}</code>`,
+        `🎯 ${meter}`,
+        '',
+        `💰 Swap Size: <b>${money(volumeDelta)}</b>`,
+        `📊 Volume: [${volBar}]`,
         '',
         bondingCurveText,
         '',
-        `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
-        `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
-        `Volume 24h: <b>${money(volume24h)}</b>`,
-        `Buys 24h: <b>${buys24h}</b> | Sells 24h: <b>${sells24h}</b>`,
-        `New: +${buyDelta} buys, +${sellDelta} sells`,
-        flags.length ? `Flags: ${flags.join(' • ')}` : '',
+        `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
+        `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
+        `📦 Vol 24h: <b>${money(volume24h)}</b>`,
         '',
-        DEX_URL,
+        `🟢 Buys: <b>${buys24h}</b> (+${buyDelta}) | 🔴 Sells: <b>${sells24h}</b> (+${sellDelta})`,
+        `${momentum}`,
+        '',
+        `📡 Chain: Solana | ${pick(quantumPhrases)}`,
+        '',
+        flags.length ? `⚡ ${flags.join(' • ')}` : '',
+        '',
+        `${pick(closingPhrases)}`,
+        `🔗 ${DEX_URL}`,
       ]
         .filter(Boolean)
         .join('\n')
@@ -446,24 +596,34 @@ async function checkTrades() {
       })
     } else if (Date.now() - state.lastIdleReportAt >= IDLE_REPORT_MS) {
       const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta: 0, side: 'MIXED' })
+      const priceDirection = priceChangePct >= 0 ? '↗️' : '↘️'
+      const mcapDirection = marketCapChangePct >= 0 ? '📈' : '📉'
 
+      const idleEmojis = ['🐕💤', '😴🐕', '🧘🐕', '☕🐕', '🌙🐕', '🛋️🐕']
+      
       const caption = [
-        '⏸️ NO NEW SWAPS',
-        '😎 HOLDERS CHILLING 😎',
+        '──────────────────',
+        pick(idleHeaders),
+        pick(idleSubtitles),
+        '──────────────────',
         '',
-        `Token: <b>${baseToken}</b>`,
-        `Quantum Doge: 😴🐕 Idle`,
-        `📡 Chain: Solana`,
+        `🪙 Token: <b>${baseToken}</b>`,
+        `⏰ Time: <code>${timeAgo()}</code>`,
+        `🎯 ${pick(idleEmojis)} Idle mode`,
         '',
         bondingCurveText,
         '',
-        `Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
-        `Market Cap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
-        `Volume 24h: <b>${money(volume24h)}</b>`,
-        `Buys 24h: <b>${buys24h}</b> | Sells 24h: <b>${sells24h}</b>`,
-        flags.length ? `Flags: ${flags.join(' • ')}` : '',
+        `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
+        `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
+        `📦 Vol 24h: <b>${money(volume24h)}</b>`,
         '',
-        DEX_URL,
+        `🟢 Buys: <b>${buys24h}</b> | 🔴 Sells: <b>${sells24h}</b>`,
+        '',
+        `📡 Chain: Solana | ⚛️ ${pick(['Field: Stable', 'Quantum: Quiet', 'Energy: Conserved', 'State: Observing'])}`,
+        flags.length ? `⚡ ${flags.join(' • ')}` : '',
+        '',
+        `${pick(['💎 Patience is profit', '🧘 Zen trading', '☕ Grab a coffee', '📖 Time to DYOR', '🎯 Stay ready'])}`,
+        `🔗 ${DEX_URL}`,
       ]
         .filter(Boolean)
         .join('\n')
@@ -485,7 +645,13 @@ async function checkTrades() {
 setInterval(checkTrades, POLL_MS)
 checkTrades() // Aja heti käynnistyksessä
 
-console.log('Bot started - monitoring DexScreener for all registered groups')
+const startupMessages = [
+  '⚛️ Quantum Doge Bot ONLINE - Monitoring DexScreener...',
+  '🐕 QDOGE Alert System initialized - Ready for action!',
+  '🚀 Bot launched - All systems operational!',
+  '🔮 Quantum monitoring activated - Let\'s go!',
+]
+console.log(startupMessages[Math.floor(Math.random() * startupMessages.length)])
 
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
