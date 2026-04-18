@@ -402,17 +402,17 @@ async function sendQuantumDoge(caption) {
   }
 }
 
-async function sendIdlePhoto(caption) {
-  const photoPath = join(__dirname, 'qdogesol2.png')
+async function sendIdleVideo(caption) {
+  const videoPath = join(__dirname, 'No_new_swaps.mp4')
   
   // Siivoa vanhat viestit ennen uuden lähettämistä
   await cleanupOldMessages()
   
   for (const chatId of chatIds) {
     try {
-      const sentMsg = await bot.telegram.sendPhoto(
+      const sentMsg = await bot.telegram.sendAnimation(
         chatId,
-        { source: createReadStream(photoPath) },
+        { source: createReadStream(videoPath) },
         {
           caption,
           parse_mode: 'HTML',
@@ -428,9 +428,9 @@ async function sendIdlePhoto(caption) {
         sentAt: Date.now()
       })
       
-      console.log(`Idle photo sent to ${chatId} (msg ${sentMsg.message_id})`)
+      console.log(`Idle video sent to ${chatId} (msg ${sentMsg.message_id})`)
     } catch (err) {
-      console.error(`Failed to send idle photo to ${chatId}:`, err.message)
+      console.error(`Failed to send idle video to ${chatId}:`, err.message)
       if (err.message.includes('chat not found') || err.message.includes('bot was kicked')) {
         chatIds.delete(chatId)
         sentMessages.delete(chatId)
@@ -628,7 +628,7 @@ async function checkTrades() {
         .filter(Boolean)
         .join('\n')
 
-      await sendIdlePhoto(caption)
+      await sendIdleVideo(caption)
       state.lastIdleReportAt = Date.now()
     }
 
