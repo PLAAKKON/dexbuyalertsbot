@@ -157,6 +157,19 @@ function timeAgo() {
   return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+// Fetch fresh data from DexScreener for real-time display
+async function fetchLiveData() {
+  try {
+    const res = await fetch(PAIR_URL)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.pair || null
+  } catch (err) {
+    console.error('fetchLiveData error:', err.message)
+    return null
+  }
+}
+
 // Dynamic headers
 const buyHeaders = [
   '🔥 BUY ALERT DETECTED',
@@ -252,15 +265,19 @@ function getMomentum(priceChangePct) {
   return pick(momentumPhrases.neutral)
 }
 
-// Bonding curve progress bar generator
+// Bonding curve progress bar generator - clean box style
 function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
-  const filled = Math.round(pct / 10)
-  const empty = 10 - filled
-  // Use colored balls for animated effect
-  const filledBalls = '🟢'.repeat(filled)
-  const emptyBalls = '⚫'.repeat(empty)
-  return `${filledBalls}${emptyBalls} ${pct.toFixed(1)}%`
+  const filled = Math.round(pct / 5)  // 20 laatikkoa yhteensä
+  const empty = 20 - filled
+  
+  // Käytä Unicode-laatikoita (selkeä ja kompakti)
+  const filledChar = '▓'  // Täytetty
+  const emptyChar = '░'   // Tyhjä
+  
+  const bar = filledChar.repeat(filled) + emptyChar.repeat(empty)
+  
+  return `[${bar}] ${pct.toFixed(1)}%`
 }
 
 // Fetch bonding curve data from pump.fun
@@ -363,11 +380,41 @@ function buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side }) {
   return flags
 }
 
-async function sendQuantumDoge(caption) {
+async function sendQuantumDoge(caption, refreshData = true) {
   const animationPath = join(__dirname, 'qdogesol.mov')
   
   // Siivoa vanhat viestit ennen uuden lähettämistä
   await cleanupOldMessages()
+  
+  // Hae tuorein data juuri ennen lähettämistä
+  let finalCaption = caption
+  if (refreshData) {
+    const liveData = await fetchLiveData()
+    if (liveData) {
+      const livePrice = num(liveData.priceUsd)
+      const liveMcap = num(liveData.marketCap)
+      const liveVol = num(liveData.volume?.h24)
+      const liveBuys = num(liveData.txns?.h24?.buys)
+      const liveSells = num(liveData.txns?.h24?.sells)
+      const bondingCurve = await getBondingCurveProgress()
+      
+      // Korvaa vanhat arvot tuoreilla - etsi ja korvaa rivit
+      const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+      })
+      
+      // Päivitä caption tuoreilla arvoilla
+      finalCaption = finalCaption
+        .replace(/⏰ Time: <code>[^<]+<\/code>/, `⏰ Time: <code>${timestamp} 🔴LIVE</code>`)
+        .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
+        .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
+        .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
+        .replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
+        .replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
+      
+      console.log(`Live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}, Buys=${liveBuys}, Sells=${liveSells}`)
+    }
+  }
   
   for (const chatId of chatIds) {
     try {
@@ -375,7 +422,7 @@ async function sendQuantumDoge(caption) {
         chatId,
         { source: createReadStream(animationPath) },
         {
-          caption,
+          caption: finalCaption,
           parse_mode: 'HTML',
         }
       )
@@ -402,11 +449,38 @@ async function sendQuantumDoge(caption) {
   }
 }
 
-async function sendIdleVideo(caption) {
+async function sendIdleVideo(caption, refreshData = true) {
   const videoPath = join(__dirname, 'No_new_swaps.mp4')
   
   // Siivoa vanhat viestit ennen uuden lähettämistä
   await cleanupOldMessages()
+  
+  // Hae tuorein data juuri ennen lähettämistä
+  let finalCaption = caption
+  if (refreshData) {
+    const liveData = await fetchLiveData()
+    if (liveData) {
+      const livePrice = num(liveData.priceUsd)
+      const liveMcap = num(liveData.marketCap)
+      const liveVol = num(liveData.volume?.h24)
+      const liveBuys = num(liveData.txns?.h24?.buys)
+      const liveSells = num(liveData.txns?.h24?.sells)
+      
+      const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+      })
+      
+      finalCaption = finalCaption
+        .replace(/⏰ Time: <code>[^<]+<\/code>/, `⏰ Time: <code>${timestamp} 🔴LIVE</code>`)
+        .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
+        .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
+        .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
+        .replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
+        .replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
+      
+      console.log(`Idle live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}`)
+    }
+  }
   
   for (const chatId of chatIds) {
     try {
@@ -414,7 +488,7 @@ async function sendIdleVideo(caption) {
         chatId,
         { source: createReadStream(videoPath) },
         {
-          caption,
+          caption: finalCaption,
           parse_mode: 'HTML',
         }
       )
@@ -584,6 +658,13 @@ async function checkTrades() {
         await sendQuantumDoge(caption)
         state.lastAlertSignature = signature
         state.lastIdleReportAt = Date.now()
+        
+        // Päivitä tila heti alertin jälkeen tuoreimmalla datalla
+        state.lastPrice = price
+        state.lastMarketCap = marketCap
+        state.lastVolume24h = volume24h
+        state.lastBuys24h = buys24h
+        state.lastSells24h = sells24h
       }
 
       await maybeAutoBuy({
