@@ -253,10 +253,10 @@ function getExcitementLevel(volumeDelta, priceChangePct) {
   const priceScore = Math.abs(priceChangePct) >= 10 ? 3 : Math.abs(priceChangePct) >= 5 ? 2 : Math.abs(priceChangePct) >= 2 ? 1 : 0
   const total = volScore + priceScore
   
-  if (total >= 5) return { emoji: '🔥🔥🔥', text: 'EXTREME', border: '═══════════════════' }
-  if (total >= 4) return { emoji: '🔥🔥', text: 'HIGH', border: '════════════════' }
-  if (total >= 2) return { emoji: '🔥', text: 'MODERATE', border: '═══════════════' }
-  return { emoji: '📊', text: 'NORMAL', border: '──────────────' }
+  if (total >= 5) return { emoji: '🔥🔥🔥', text: 'EXTREME', border: '════════════' }
+  if (total >= 4) return { emoji: '🔥🔥', text: 'HIGH', border: '═══════════' }
+  if (total >= 2) return { emoji: '🔥', text: 'MODERATE', border: '══════════' }
+  return { emoji: '📊', text: 'NORMAL', border: '──────────' }
 }
 
 function getMomentum(priceChangePct) {
@@ -268,8 +268,8 @@ function getMomentum(priceChangePct) {
 // Bonding curve progress bar generator - clean box style
 function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
-  const filled = Math.round(pct / 5)  // 20 laatikkoa yhteensä
-  const empty = 20 - filled
+  const filled = Math.round(pct / 10)  // 10 laatikkoa yhteensä
+  const empty = 10 - filled
   
   // Käytä Unicode-laatikoita (selkeä ja kompakti)
   const filledChar = '▓'  // Täytetty
@@ -683,10 +683,10 @@ async function checkTrades() {
       const idleEmojis = ['🐕💤', '😴🐕', '🧘🐕', '☕🐕', '🌙🐕', '🛋️🐕']
       
       const caption = [
-        '──────────────────',
+        '──────────',
         pick(idleHeaders),
         pick(idleSubtitles),
-        '──────────────────',
+        '──────────',
         '',
         `🪙 Token: <b>${baseToken}</b>`,
         `⏰ Time: <code>${timeAgo()}</code>`,
