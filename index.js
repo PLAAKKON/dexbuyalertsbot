@@ -268,16 +268,18 @@ function getMomentum(priceChangePct) {
 // Bonding curve progress bar generator - clean box style
 function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
-  const filled = Math.round(pct / 10)  // 10 laatikkoa yhteensä
-  const empty = 10 - filled
-  
-  // Käytä Unicode-laatikoita (selkeä ja kompakti)
-  const filledChar = '▓'  // Täytetty
-  const emptyChar = '░'   // Tyhjä
-  
-  const bar = filledChar.repeat(filled) + emptyChar.repeat(empty)
-  
-  return `[${bar}] ${pct.toFixed(1)}%`
+  const filled = Math.round(pct / 10)  // 10 segments
+
+  // Color sweep: red → orange → yellow → green
+  const colorMap = ['🟥', '🟥', '🟧', '🟧', '🟨', '🟨', '🟩', '🟩', '🟩', '🟩']
+  const emptyChar = '⬜'
+
+  let bar = ''
+  for (let i = 0; i < 10; i++) {
+    bar += i < filled ? colorMap[i] : emptyChar
+  }
+
+  return `${bar} ${pct.toFixed(1)}%`
 }
 
 // Fetch bonding curve data from pump.fun
@@ -409,8 +411,8 @@ async function sendQuantumDoge(caption, refreshData = true) {
         .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
         .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
         .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
-        .replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
-        .replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
+      if (liveBuys > 0) finalCaption = finalCaption.replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
+      if (liveSells > 0) finalCaption = finalCaption.replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
       
       console.log(`Live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}, Buys=${liveBuys}, Sells=${liveSells}`)
     }
@@ -475,8 +477,8 @@ async function sendIdleVideo(caption, refreshData = true) {
         .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
         .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
         .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
-        .replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
-        .replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
+      if (liveBuys > 0) finalCaption = finalCaption.replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
+      if (liveSells > 0) finalCaption = finalCaption.replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
       
       console.log(`Idle live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}`)
     }
@@ -586,8 +588,8 @@ async function checkTrades() {
     const sellDelta = Math.max(0, sells24h - state.lastSells24h)
     const volumeDelta = Math.max(0, volume24h - state.lastVolume24h)
 
-    const priceChangePct = pctChange(price, state.lastPrice)
-    const marketCapChangePct = pctChange(marketCap, state.lastMarketCap)
+    const priceChangePct = num(pair.priceChange?.h24, 0)
+    const marketCapChangePct = num(pair.priceChange?.h24, 0)
 
     const hasSwapActivity = buyDelta > 0 || sellDelta > 0
 
