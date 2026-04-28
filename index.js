@@ -268,18 +268,8 @@ function getMomentum(priceChangePct) {
 // Bonding curve progress bar generator - clean box style
 function bondingCurveBar(percentage) {
   const pct = Math.min(100, Math.max(0, percentage))
-  const filled = Math.round(pct / 10)  // 10 segments
-
-  // Color sweep: red → orange → yellow → green
-  const colorMap = ['🟥', '🟥', '🟧', '🟧', '🟨', '🟨', '🟩', '🟩', '🟩', '🟩']
-  const emptyChar = '⬜'
-
-  let bar = ''
-  for (let i = 0; i < 10; i++) {
-    bar += i < filled ? colorMap[i] : emptyChar
-  }
-
-  return `${bar} ${pct.toFixed(1)}%`
+  const emoji = pct >= 50 ? '🟩' : '🟨'
+  return `${emoji} <b>${pct.toFixed(1)}%</b>`
 }
 
 // Fetch bonding curve data from pump.fun
@@ -305,7 +295,8 @@ async function getBondingCurveProgress() {
         progress: 100,
         solInCurve: data.real_sol_reserves ? data.real_sol_reserves / 1e9 : 0,
         graduated: true,
-        kingOfTheHill: false
+        kingOfTheHill: false,
+        holderCount: data.holder_count || data.holders || 0
       }
     }
     
@@ -321,7 +312,8 @@ async function getBondingCurveProgress() {
         progress: Math.min(100, Math.max(0, progress)),
         solInCurve: realSol,
         graduated: false,
-        kingOfTheHill: data.king_of_the_hill_timestamp !== null
+        kingOfTheHill: data.king_of_the_hill_timestamp !== null,
+        holderCount: data.holder_count || data.holders || 0
       }
     }
     
@@ -400,19 +392,11 @@ async function sendQuantumDoge(caption, refreshData = true) {
       const liveSells = num(liveData.txns?.h24?.sells)
       const bondingCurve = await getBondingCurveProgress()
       
-      // Korvaa vanhat arvot tuoreilla - etsi ja korvaa rivit
-      const timestamp = new Date().toLocaleTimeString('en-US', { 
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-      })
-      
       // Päivitä caption tuoreilla arvoilla
       finalCaption = finalCaption
-        .replace(/⏰ Time: <code>[^<]+<\/code>/, `⏰ Time: <code>${timestamp} 🔴LIVE</code>`)
         .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
         .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
         .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
-      if (liveBuys > 0) finalCaption = finalCaption.replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
-      if (liveSells > 0) finalCaption = finalCaption.replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
       
       console.log(`Live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}, Buys=${liveBuys}, Sells=${liveSells}`)
     }
@@ -468,17 +452,10 @@ async function sendIdleVideo(caption, refreshData = true) {
       const liveBuys = num(liveData.txns?.h24?.buys)
       const liveSells = num(liveData.txns?.h24?.sells)
       
-      const timestamp = new Date().toLocaleTimeString('en-US', { 
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
-      })
-      
       finalCaption = finalCaption
-        .replace(/⏰ Time: <code>[^<]+<\/code>/, `⏰ Time: <code>${timestamp} 🔴LIVE</code>`)
         .replace(/Price: <b>\$[^<]+<\/b>/, `Price: <b>${money(livePrice)}</b>`)
         .replace(/MCap: <b>\$[^<]+<\/b>/, `MCap: <b>${money(liveMcap)}</b>`)
         .replace(/Vol 24h: <b>\$[^<]+<\/b>/, `Vol 24h: <b>${money(liveVol)}</b>`)
-      if (liveBuys > 0) finalCaption = finalCaption.replace(/🟢 Buys: <b>\d+<\/b>/, `🟢 Buys: <b>${liveBuys}</b>`)
-      if (liveSells > 0) finalCaption = finalCaption.replace(/🔴 Sells: <b>\d+<\/b>/, `🔴 Sells: <b>${liveSells}</b>`)
       
       console.log(`Idle live data refresh: Price=${money(livePrice)}, MCap=${money(liveMcap)}`)
     }
@@ -604,8 +581,9 @@ async function checkTrades() {
     const bondingCurveText = bondingCurve
       ? bondingCurve.graduated
         ? '🎓 <b>GRADUATED TO RAYDIUM!</b>'
-        : `📈 Bonding Curve:\n${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
+        : `📈 Bonding Curve: ${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
       : ''
+    const holdersText = bondingCurve?.holderCount ? `👥 Holders: <b>${bondingCurve.holderCount.toLocaleString()}</b>` : ''
 
     if (hasSwapActivity) {
       const meter = quantumDogeMeter(volumeDelta, side)
@@ -623,28 +601,26 @@ async function checkTrades() {
       const mcapDirection = marketCapChangePct >= 0 ? '📈' : '📉'
       const volBar = volumeBar(volumeDelta, MEGA_WHALE_USD, 8)
       
+      const tokensGot = price > 0 ? Math.round(volumeDelta / price).toLocaleString() : '?'
       const caption = [
         `${excitement.border}`,
         `${header} ${excitement.emoji}`,
         `${excitement.border}`,
         '',
-        `🪙 Token: <b>${baseToken}</b>`,
-        `⏰ Time: <code>${timeAgo()}</code>`,
         `🎯 ${meter}`,
         '',
         `💰 Swap Size: <b>${money(volumeDelta)}</b>`,
+        `Got: <b>${tokensGot} LAIKA</b>`,
         `📊 Volume: [${volBar}]`,
         '',
         bondingCurveText,
+        holdersText,
         '',
         `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
         `📦 Vol 24h: <b>${money(volume24h)}</b>`,
         '',
-        `🟢 Buys: <b>${buys24h}</b> (+${buyDelta}) | 🔴 Sells: <b>${sells24h}</b> (+${sellDelta})`,
         `${momentum}`,
-        '',
-        `📡 Chain: Solana | ${pick(quantumPhrases)}`,
         '',
         flags.length ? `⚡ ${flags.join(' • ')}` : '',
         '',
@@ -690,19 +666,15 @@ async function checkTrades() {
         pick(idleSubtitles),
         '──────────',
         '',
-        `🪙 Token: <b>${baseToken}</b>`,
-        `⏰ Time: <code>${timeAgo()}</code>`,
         `🎯 ${pick(idleEmojis)} Idle mode`,
         '',
         bondingCurveText,
+        holdersText,
         '',
         `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
         `📦 Vol 24h: <b>${money(volume24h)}</b>`,
         '',
-        `🟢 Buys: <b>${buys24h}</b> | 🔴 Sells: <b>${sells24h}</b>`,
-        '',
-        `📡 Chain: Solana | ⚛️ ${pick(['Field: Stable', 'Quantum: Quiet', 'Energy: Conserved', 'State: Observing'])}`,
         flags.length ? `⚡ ${flags.join(' • ')}` : '',
         '',
         `${pick(['💎 Patience is profit', '🧘 Zen trading', '☕ Grab a coffee', '📖 Time to DYOR', '🎯 Stay ready'])}`,
