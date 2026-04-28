@@ -599,7 +599,6 @@ async function checkTrades() {
 
       const priceDirection = priceChangePct >= 0 ? '↗️' : '↘️'
       const mcapDirection = marketCapChangePct >= 0 ? '📈' : '📉'
-      const volBar = volumeBar(volumeDelta, MEGA_WHALE_USD, 8)
       
       const tokensGot = price > 0 ? Math.round(volumeDelta / price).toLocaleString() : '?'
       const caption = [
@@ -611,7 +610,6 @@ async function checkTrades() {
         '',
         `💰 Swap Size: <b>${money(volumeDelta)}</b>`,
         `Got: <b>${tokensGot} LAIKA</b>`,
-        `📊 Volume: [${volBar}]`,
         '',
         bondingCurveText,
         holdersText,
