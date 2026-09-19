@@ -50,15 +50,12 @@ bot.start((ctx) => {
 bot.launch()
 console.log('Bot polling started')
 
-// Seurattava pair
-const PAIR_ID = 'GmEitYz2NmbFXLKXWJfm92LENpWHMVVwNPK1EWDcFGVN'
-const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}`
-const DEX_URL = `https://dexscreener.com/solana/e2aqyizkyftvrvr4g8vmmbpfd86pigicwwarkujdpump`
-
-// Pump.fun bonding curve settings
-const TOKEN_MINT = 'E2AQyiZKYftVRvR4g8VMMBpfD86PiGicWWARKuJdpump'
-const PUMP_FUN_API_URL = `https://frontend-api-v3.pump.fun/coins/${TOKEN_MINT}`
-const INITIAL_REAL_TOKEN_RESERVES = 793100000000000  // Initial tokens in bonding curve (793.1M with 6 decimals)
+// Seurattava Base-pari (Uniswap v4 / BaseStonk)
+const TOKEN_ADDRESS = '0x0531B596C21B3aC983A1CcE35A5FaD3637103222'
+const PAIR_ID = '0x1e25b353536a5c2cd1194b6f2c3c45c3e7400e73d25304823731dd93867d5db6'
+const PAIR_URL = `https://api.dexscreener.com/latest/dex/pairs/base/${PAIR_ID}`
+const DEX_URL = `https://dexscreener.com/base/${TOKEN_ADDRESS}`
+const TOKEN_SYMBOL = 'QDOGE'
 
 // Asetukset
 const POLL_MS = 60000  // 60 sekuntia rate limitin välttämiseksi
@@ -265,65 +262,6 @@ function getMomentum(priceChangePct) {
   return pick(momentumPhrases.neutral)
 }
 
-// Bonding curve progress bar generator - clean box style
-function bondingCurveBar(percentage) {
-  const pct = Math.min(100, Math.max(0, percentage))
-  const emoji = pct >= 50 ? '🟩' : '🟨'
-  return `${emoji} <b>${pct.toFixed(1)}%</b>`
-}
-
-// Fetch bonding curve data from pump.fun
-async function getBondingCurveProgress() {
-  try {
-    const res = await fetch(PUMP_FUN_API_URL, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    })
-    
-    if (!res.ok) {
-      console.error('Pump.fun API failed:', res.status)
-      return null
-    }
-    
-    const data = await res.json()
-    
-    // Check if already graduated
-    if (data.complete === true) {
-      return {
-        progress: 100,
-        solInCurve: data.real_sol_reserves ? data.real_sol_reserves / 1e9 : 0,
-        graduated: true,
-        kingOfTheHill: false,
-        holderCount: data.holder_count || data.holders || 0
-      }
-    }
-    
-    // Calculate progress based on tokens sold from bonding curve
-    // Progress = 1 - (current_tokens / initial_tokens)
-    if (data.real_token_reserves !== undefined) {
-      const realSol = data.real_sol_reserves ? data.real_sol_reserves / 1e9 : 0
-      const progress = (1 - (data.real_token_reserves / INITIAL_REAL_TOKEN_RESERVES)) * 100
-      
-      console.log(`Bonding curve: ${realSol.toFixed(2)} SOL, ${progress.toFixed(1)}% tokens sold`)
-      
-      return {
-        progress: Math.min(100, Math.max(0, progress)),
-        solInCurve: realSol,
-        graduated: false,
-        kingOfTheHill: data.king_of_the_hill_timestamp !== null,
-        holderCount: data.holder_count || data.holders || 0
-      }
-    }
-    
-    return null
-  } catch (err) {
-    console.error('getBondingCurveProgress error:', err.message)
-    return null
-  }
-}
-
 function quantumDogeMeter(usdSize, side = 'BUY') {
   const buyEmojis = ['⚛️', '💚', '🟢', '✅', '💎']
   const sellEmojis = ['🌀', '🔴', '❌', '📉', '💨']
@@ -390,7 +328,6 @@ async function sendQuantumDoge(caption, refreshData = true) {
       const liveVol = num(liveData.volume?.h24)
       const liveBuys = num(liveData.txns?.h24?.buys)
       const liveSells = num(liveData.txns?.h24?.sells)
-      const bondingCurve = await getBondingCurveProgress()
       
       // Päivitä caption tuoreilla arvoilla
       finalCaption = finalCaption
@@ -542,7 +479,7 @@ async function checkTrades() {
       return
     }
 
-    const baseToken = pair.baseToken?.symbol || 'LAIKA'
+    const baseToken = pair.baseToken?.symbol || TOKEN_SYMBOL
     const price = num(pair.priceUsd)
     const volume24h = num(pair.volume?.h24)
     const marketCap = num(pair.marketCap)
@@ -576,15 +513,6 @@ async function checkTrades() {
     else if (buyDelta > sellDelta) side = 'BUY'
     else if (sellDelta > buyDelta) side = 'SELL'
 
-    // Fetch bonding curve progress
-    const bondingCurve = await getBondingCurveProgress()
-    const bondingCurveText = bondingCurve
-      ? bondingCurve.graduated
-        ? '🎓 <b>GRADUATED TO RAYDIUM!</b>'
-        : `📈 Bonding Curve: ${bondingCurveBar(bondingCurve.progress)}${bondingCurve.kingOfTheHill ? ' 👑' : ''}`
-      : ''
-    const holdersText = bondingCurve?.holderCount ? `👥 Holders: <b>${bondingCurve.holderCount.toLocaleString()}</b>` : ''
-
     if (hasSwapActivity) {
       const meter = quantumDogeMeter(volumeDelta, side)
       const flags = buildFlags({ priceChangePct, marketCapChangePct, volumeDelta, side })
@@ -609,10 +537,7 @@ async function checkTrades() {
         `🎯 ${meter}`,
         '',
         `💰 Swap Size: <b>${money(volumeDelta)}</b>`,
-        `Got: <b>${tokensGot} LAIKA</b>`,
-        '',
-        bondingCurveText,
-        holdersText,
+        `Got: <b>${tokensGot} ${baseToken}</b>`,
         '',
         `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
@@ -665,9 +590,6 @@ async function checkTrades() {
         '──────────',
         '',
         `🎯 ${pick(idleEmojis)} Idle mode`,
-        '',
-        bondingCurveText,
-        holdersText,
         '',
         `${priceDirection} Price: <b>${money(price)}</b> (${shortPct(priceChangePct)})`,
         `${mcapDirection} MCap: <b>${money(marketCap)}</b> (${shortPct(marketCapChangePct)})`,
